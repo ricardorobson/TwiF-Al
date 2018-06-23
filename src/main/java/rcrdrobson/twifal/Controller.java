@@ -1,5 +1,11 @@
 package rcrdrobson.twifal;
 
+import org.jgrapht.DirectedGraph;
+import org.jgrapht.alg.KosarajuStrongConnectivityInspector;
+import org.jgrapht.alg.interfaces.StrongConnectivityAlgorithm;
+import org.jgrapht.graph.DefaultDirectedGraph;
+import org.jgrapht.graph.DefaultEdge;
+import org.jgrapht.graph.DirectedSubgraph;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -8,7 +14,6 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import twitter4j.*;
-import twitter4j.api.FriendsFollowersResources;
 import twitter4j.auth.AccessToken;
 import twitter4j.auth.RequestToken;
 
@@ -91,6 +96,30 @@ public class Controller {
         return hashMap;
     }
 
+    private DirectedSubgraph<String, DefaultEdge> getStronglyGraph(Map<Long,Set<Long>> hashMap){
+        DirectedGraph<String, DefaultEdge> g
+                = new DefaultDirectedGraph<>(DefaultEdge.class);
+        for(Long id : hashMap.keySet()){
+            Set<Long> statusSet = hashMap.get(id);
+            if(statusSet.size()>1){
+                Long[] statusArray = statusSet.toArray(new Long[0]);
+                for (int i=0;i<statusArray.length;i++){
+                    for(int j=i+1;j<statusArray.length;j++){
+                        g.addVertex(statusArray[i]+"");
+                        g.addVertex(statusArray[j]+"");
+
+                        g.addEdge(statusArray[i]+"",statusArray[j]+"");
+                        g.addEdge(statusArray[j]+"",statusArray[i]+"");
+                    }
+                }
+            }
+        }
+        StrongConnectivityAlgorithm<String, DefaultEdge> scAlg = new KosarajuStrongConnectivityInspector<>(g);
+        List<DirectedSubgraph<String, DefaultEdge>> listAux = scAlg.stronglyConnectedSubgraphs();
+        listAux.sort(Comparator.comparingInt(a -> a.vertexSet().size()));
+        return listAux.get(0);
+    }
+
     @RequestMapping(value = "/login", method = RequestMethod.GET)
     public ResponseEntity<Object> login(HttpServletRequest request){
         Twitter twitter = getInstance();
@@ -109,20 +138,16 @@ public class Controller {
     @RequestMapping(value = "/", method = RequestMethod.GET)
     public String index(HttpServletRequest request,
                         @RequestParam("oauth_token") String oauthtoken, @RequestParam("oauth_verifier") String oauthVerifier){
+        Twitter twitter = null;
         try {
-            Twitter twitter = getInstance(request,oauthVerifier);
-            getTuples(twitter);
-            //TODO: Get all ids in all pagea
-            long[] ids = twitter.getFriendsIDs(-1).getIDs();
-            for(long id : ids){
-                System.out.println("ID:\t"+id);
-                System.out.println("\t\t"+twitter.getUserTimeline(id).get(0));
-            }
-        } catch (TwitterException e) {
-            e.printStackTrace();
+            twitter = getInstance(request,oauthVerifier);
+            Map<Long,Set<Long>> hashMap=getMap(twitter);
+            DirectedSubgraph<String, DefaultEdge> graph = getStronglyGraph(hashMap);
+            
         } catch (Exception e) {
             e.printStackTrace();
         }
+
         return null;
     }
 }
