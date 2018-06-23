@@ -7,10 +7,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import twitter4j.Status;
-import twitter4j.Twitter;
-import twitter4j.TwitterException;
-import twitter4j.TwitterFactory;
+import twitter4j.*;
+import twitter4j.api.FriendsFollowersResources;
 import twitter4j.auth.AccessToken;
 import twitter4j.auth.RequestToken;
 
@@ -28,6 +26,26 @@ public class Controller {
 
     private Twitter getInstance(String token, String tokenSecret){
         return new TwitterFactory().getInstance(new AccessToken(token,tokenSecret));
+    }
+
+    private Twitter getInstance(HttpServletRequest request, String oauthVerifier) throws Exception {
+        Twitter twitter = (Twitter) request.getSession().getAttribute("twitter");
+        RequestToken requestToken = (RequestToken) request.getSession().getAttribute("REQUEST_TOKEN");
+        AccessToken token = (AccessToken) request.getSession().getAttribute("AccessToken");
+        System.out.println(requestToken);
+        try {
+            if(token == null){
+                token = twitter.getOAuthAccessToken(requestToken, oauthVerifier);
+                request.getSession().setAttribute("AccessToken", token);
+            }
+        } catch (TwitterException e) {
+            e.printStackTrace();
+        }
+        if(token == null) {
+            throw new Exception("Acesso negado");
+        }
+        twitter = getInstance(token.getToken(), token.getTokenSecret());
+        return twitter;
     }
 
     @RequestMapping(value = "/login", method = RequestMethod.GET)
@@ -48,36 +66,19 @@ public class Controller {
     @RequestMapping(value = "/", method = RequestMethod.GET)
     public String index(HttpServletRequest request,
                         @RequestParam("oauth_token") String oauthtoken, @RequestParam("oauth_verifier") String oauthVerifier){
-
-        Twitter twitter = (Twitter) request.getSession().getAttribute("twitter");
-        RequestToken requestToken = (RequestToken) request.getSession().getAttribute("REQUEST_TOKEN");
-        AccessToken token = (AccessToken) request.getSession().getAttribute("AccessToken");
-        System.out.println(requestToken);
         try {
-            if(token == null){
-                token = twitter.getOAuthAccessToken(requestToken, oauthVerifier);
-                request.getSession().setAttribute("AccessToken", token);
+            Twitter twitter = getInstance(request,oauthVerifier);
+            //TODO: Get all ids in all pagea
+            long[] ids = twitter.getFriendsIDs(-1).getIDs();
+            for(long id : ids){
+                System.out.println("ID:\t"+id);
+                System.out.println("\t\t"+twitter.getUserTimeline(id).get(0).getText());
             }
         } catch (TwitterException e) {
             e.printStackTrace();
-        }
-        if(token == null) {
-            return "Acesso negado";
-        }
-        twitter = getInstance(token.getToken(), token.getTokenSecret());
-        System.out.println(twitter.getAuthorization().isEnabled());
-        StringBuilder result = new StringBuilder();
-        try {
-            List<Status> statuses = twitter.getHomeTimeline();
-            System.out.println("Showing home timeline.");
-            for (Status status : statuses) {
-                result.append(status.getUser().getName()).append(":").append(status.getText()).append("\n");
-            }
-        } catch (Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
-            return "Timeline inacessível";
         }
-        System.out.println("finish");
-        return result.toString();
+        return null;
     }
 }
