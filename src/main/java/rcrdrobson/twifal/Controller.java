@@ -14,7 +14,7 @@ import twitter4j.auth.RequestToken;
 
 import javax.servlet.http.HttpServletRequest;
 import java.net.URI;
-import java.util.List;
+import java.util.*;
 
 @RestController
 @RequestMapping(value = "/", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -48,6 +48,49 @@ public class Controller {
         return twitter;
     }
 
+    private Map<Long, Set<Long>> getMap(Twitter twitter){
+        Map<Long, Set<Long>> hashMap = new HashMap<>();
+        try {
+            //TODO: Get all ids in all pagea
+            long[] ids = twitter.getFriendsIDs(-1).getIDs();
+
+            for(long id : ids){
+                Set<Long> set=new HashSet<Long>();
+                hashMap.put(id,set);
+                //Getting favorites tweets from user
+                for(Status status : twitter.getFavorites(id)){
+                    set.add(status.getId());
+                }
+                hashMap.put(id,set);
+
+                /*
+                //TODO:
+                //Getting retweets from tweet from user
+                Set<Long> setAux=hashMap.get(id);
+                for(Long statusId : setAux){
+                    Set<Long> setRetweetAux = new HashSet<Long>();
+                    for(Status retweet : twitter.getRetweets(statusId)){
+                        setRetweetAux.add(retweet.getId());
+                    }
+                    if(hashMap.get(id)==null){
+                        hashMap.put(id,setAux);
+                    }else{
+                        setAux.addAll(setRetweetAux);
+                        hashMap.put(id,setAux);
+                    }
+                }
+                */
+            }
+
+        } catch (TwitterException e) {
+            e.printStackTrace();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return hashMap;
+    }
+
     @RequestMapping(value = "/login", method = RequestMethod.GET)
     public ResponseEntity<Object> login(HttpServletRequest request){
         Twitter twitter = getInstance();
@@ -68,11 +111,12 @@ public class Controller {
                         @RequestParam("oauth_token") String oauthtoken, @RequestParam("oauth_verifier") String oauthVerifier){
         try {
             Twitter twitter = getInstance(request,oauthVerifier);
+            getTuples(twitter);
             //TODO: Get all ids in all pagea
             long[] ids = twitter.getFriendsIDs(-1).getIDs();
             for(long id : ids){
                 System.out.println("ID:\t"+id);
-                System.out.println("\t\t"+twitter.getUserTimeline(id).get(0).getText());
+                System.out.println("\t\t"+twitter.getUserTimeline(id).get(0));
             }
         } catch (TwitterException e) {
             e.printStackTrace();
