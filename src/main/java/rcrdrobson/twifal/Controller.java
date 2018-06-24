@@ -3,6 +3,7 @@ package rcrdrobson.twifal;
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.alg.KosarajuStrongConnectivityInspector;
 import org.jgrapht.alg.interfaces.StrongConnectivityAlgorithm;
+import org.jgrapht.alg.scoring.PageRank;
 import org.jgrapht.graph.DefaultDirectedGraph;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.DirectedSubgraph;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import sun.security.provider.certpath.Vertex;
 import twitter4j.*;
 import twitter4j.auth.AccessToken;
 import twitter4j.auth.RequestToken;
@@ -143,10 +145,13 @@ public class Controller {
             twitter = getInstance(request,oauthVerifier);
             Map<Long,Set<Long>> hashMap=getMap(twitter);
             DirectedSubgraph<String, DefaultEdge> graph = getStronglyGraph(hashMap);
-            
+            PageRank pageRank = new PageRank(graph);
+
+            System.out.println(pageRank.getScores().toString());
         } catch (Exception e) {
             e.printStackTrace();
         }
+
 
         return null;
     }
