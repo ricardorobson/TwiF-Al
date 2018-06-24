@@ -10,10 +10,9 @@ import org.jgrapht.graph.DirectedSubgraph;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
 import sun.security.provider.certpath.Vertex;
 import twitter4j.*;
 import twitter4j.auth.AccessToken;
@@ -137,8 +136,8 @@ public class Controller {
         }
     }
 
-    @RequestMapping(value = "/", method = RequestMethod.GET)
-    public String index(HttpServletRequest request,
+    @RequestMapping(value = "/connect", method = RequestMethod.GET)
+    public String connect(HttpServletRequest request,
                         @RequestParam("oauth_token") String oauthtoken, @RequestParam("oauth_verifier") String oauthVerifier){
         Twitter twitter = null;
         try {
@@ -151,8 +150,7 @@ public class Controller {
         } catch (Exception e) {
             e.printStackTrace();
         }
-
-
         return null;
     }
+
 }
