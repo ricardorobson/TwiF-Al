@@ -13,7 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.bind.annotation.RequestMethod;
-import sun.security.provider.certpath.Vertex;
+import org.springframework.web.servlet.ModelAndView;
 import twitter4j.*;
 import twitter4j.auth.AccessToken;
 import twitter4j.auth.RequestToken;
@@ -136,21 +136,24 @@ public class Controller {
         }
     }
 
-    @RequestMapping(value = "/connect", method = RequestMethod.GET)
-    public String connect(HttpServletRequest request,
+    @GetMapping(value = "/timeline")
+    public ModelAndView connect(HttpServletRequest request,
                         @RequestParam("oauth_token") String oauthtoken, @RequestParam("oauth_verifier") String oauthVerifier){
+
         Twitter twitter = null;
+        PageRank<String, DefaultEdge> pageRank=null;
         try {
             twitter = getInstance(request,oauthVerifier);
             Map<Long,Set<Long>> hashMap=getMap(twitter);
             DirectedSubgraph<String, DefaultEdge> graph = getStronglyGraph(hashMap);
-            PageRank pageRank = new PageRank(graph);
-
-            System.out.println(pageRank.getScores().toString());
+            pageRank = new PageRank<>(graph);
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return null;
-    }
 
+
+        ModelAndView modelAndView=new ModelAndView("timeline");
+        modelAndView.addObject("pageRank", pageRank);
+        return modelAndView;
+    }
 }
